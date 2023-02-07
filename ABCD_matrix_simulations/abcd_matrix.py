@@ -1,4 +1,7 @@
 import numpy as np
+from numpy.random import default_rng
+rng = default_rng() 
+
 import re
 from tqdm.notebook import tqdm
 import multiprocessing
@@ -162,9 +165,23 @@ class ABCDMethods():
             else: 
                 raise NameError('There is no component named '+component_part+'.')
 
+            # generate a random array, to be used in case disorder is on
+            disorder = parameters['disorder_sigma'] * rng.standard_normal( int(numeric_part) )
+
             for i in range( int(numeric_part) ):
-                # do the multiplication, maybe we should parallelise this
-                ABCD = np.matmul(ABCD, component(omega, parameters))
+
+                if parameters['add_disorder'] == True:
+                    # if disorder is on, one parameter is spread out
+                    disordered_parameter = parameters['disorder_parameter']
+
+                    disordered_parameters = parameters.copy()
+                    disordered_parameters.update({disordered_parameter: parameters[disordered_parameter] + disorder[i]*parameters[disordered_parameter]})
+
+                    ABCD = np.matmul(ABCD, component(omega, disordered_parameters))
+
+                else:
+                    # do the multiplication, maybe we should parallelise this
+                    ABCD = np.matmul(ABCD, component(omega, parameters))
 
         return ABCD
 
@@ -254,6 +271,17 @@ class ABCDUtils():
         print('Plasma frequency =', np.round( 1/(2*np.pi) / np.sqrt(Lj*Cj) / 1e9, 3), 'GHz')
         print('Critical current =', np.round(  1e9 * hbar / 2 / e / Lj, 3), 'nA')
         print('Line impedance =', np.round( np.sqrt(Lj / Cg) / 1e3, 3), 'kOhm')
+
+
+
+    def add_disorder(component, parameters):
+        # this function adds a defined amount of disorer in the array matrices
+        sigma = parameters['disorder_sigma']
+
+
+
+
+        pass
 
 
     def draw_circuit(circuit, save_scheme = False):
