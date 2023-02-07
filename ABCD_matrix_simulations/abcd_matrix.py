@@ -274,16 +274,6 @@ class ABCDUtils():
 
 
 
-    def add_disorder(component, parameters):
-        # this function adds a defined amount of disorer in the array matrices
-        sigma = parameters['disorder_sigma']
-
-
-
-
-        pass
-
-
     def draw_circuit(circuit, save_scheme = False):
 
         ## Let's draw some circuits
