@@ -31,6 +31,15 @@ class MatrixLibrary():
         return rb_matrix
 
 
+    # resistance to ground    
+    def Rg(omega, parameters): 
+        rg = parameters['ground_resistance']
+
+        rg_matrix = np.array( [ [1   , 0],
+                                [1/rg, 1] ], dtype=object)
+        return rg_matrix
+
+
     # capacitance to ground    
     def Cg(omega, parameters): 
         cg = parameters['array_junction_ground_capacitance']
@@ -130,15 +139,17 @@ class MatrixLibrary():
 
     # short to ground
     def Sg(omega, parameters):
+        sg = 1e-21
         sg_matrix = np.array( [ [1,     0],
-                                [1e-12, 1] ])
+                                [1/sg, 1] ])
         return sg_matrix
 
 
     # open to ground
     def Og(omega, parameters):
+        og = 1e21
         og_matrix = np.array( [ [1,      0],
-                                [1e21,   1] ])
+                                [1/og,   1] ])
         return og_matrix
 
 
@@ -331,6 +342,16 @@ class ABCDUtils():
             ground_c += elm.Capacitor().down().length(2).dot().idot()
             ground_c.pop()
 
+        # resistance to ground
+        with schemdraw.Drawing(show=False) as ground_r:
+            ground_r += elm.Line().right().length(0.75)
+            ground_r.push()
+            ground_r += elm.Resistor().down().length(2).dot().idot()
+            ground_r += elm.Line().left().length(0.75).idot()
+            ground_r += elm.Line().right().length(1.5)
+            ground_r.pop()
+            ground_r += elm.Line().right().length(0.75)
+
         # short to ground
         with schemdraw.Drawing(show=False) as ground_short:
             ground_short += elm.Line().right().length(0.5)
@@ -421,8 +442,8 @@ class ABCDUtils():
 
 
         # it is important that there is a one-to-one correspondence between these two following lists
-        scheme_library = [ series_r,   ground_c,   jj_line,    ujj,     ssh,    series_r2, series_c, ground_open, ground_short ]
-        elements_names = [ 'Rb',       'Cg',       'J',        'UJ',    'SSH',  'Rs',      'Cs'    , 'Og'       , 'Sg'         ]
+        scheme_library = [ series_r,   ground_c, ground_r,   jj_line,    ujj,     ssh,    series_r2, series_c, ground_open, ground_short ]
+        elements_names = [ 'Rb',       'Cg',     'Rg',       'J',        'UJ',    'SSH',  'Rs',      'Cs'    , 'Og'       , 'Sg'         ]
         
 
         ## Draw the circuit components
