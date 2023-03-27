@@ -62,6 +62,18 @@ class MatrixLibrary():
         return jj_matrix
 
 
+    # parallel RLC in series for single junctions with different parameters, useful to be renormalised
+    def JJr(omega, parameters):
+        lj = parameters['array_junction_ren_inductance']
+        cj = parameters['array_junction_ren_capacitance']
+        rj = parameters['array_junction_ren_parallel_resistance']
+
+        rlcj = 1j*omega*cj + 1/(1j*omega*lj) + 1/rj
+
+        jj_matrix = np.array( [ [1, 1/rlcj], 
+                                [0, 1     ] ], dtype=object)
+        return jj_matrix
+
 
     # junction and ground capacitance
     def J(omega, parameters):
@@ -74,6 +86,41 @@ class MatrixLibrary():
         j_matrix = np.matmul(junction_matrix, ground_capacitance_matrix)
 
         return j_matrix
+
+
+    # renormalised junction and ground capacitance
+    def Jr(omega, parameters):
+        junction_matrix = MatrixLibrary.JJr(omega, parameters)
+        ground_capacitance_matrix = MatrixLibrary.Cg(omega, parameters)
+
+        j_matrix = np.matmul(junction_matrix, ground_capacitance_matrix)
+
+        return j_matrix
+
+
+    # element for the resistive junction
+    def rJ(omega, parameters):
+        rj = parameters['array_junction_normal_resistance']
+        cj = parameters['array_junction_capacitance']
+
+        rcj = 1j*omega*cj + 1/rj
+
+        rj_matrix = np.array( [ [1, 1/rcj ], 
+                                [0, 1    ] ], dtype=object)
+        return rj_matrix
+
+
+    # resistive junction and ground capacitance
+    def RJ(omega, parameters):
+        # calling the class withing itself is not the best idea, it could be done with "self" 
+        # but then every component needs as an input the library as well, quite useless.
+
+        resistive_junction_matrix = MatrixLibrary.rJ(omega, parameters)
+        ground_capacitance_matrix = MatrixLibrary.Cg(omega, parameters)
+
+        rj_matrix = np.matmul(resistive_junction_matrix, ground_capacitance_matrix)
+
+        return rj_matrix
 
 
     # UJJ, which to be honest is also a parallel RLC circuit
@@ -385,6 +432,37 @@ class ABCDUtils():
             jj_line += elm.Line().length(2).left()
             jj_line.pop()
 
+        with schemdraw.Drawing(show=False) as jjr_line:
+            jjr_color = 'skyblue'
+            jjr_line += elm.Line().length(0.5)
+            jjr_line += elm.Line().length(0.5).up().color(jjr_color)
+            jjr_line += elm.Resistor().scale(0.5).length(1).right().color(jjr_color)
+            jjr_line += elm.Line().length(1).down().color(jjr_color)
+            jjr_line += elm.Capacitor().scale(0.75).length(1).left().color(jjr_color)
+            jjr_line += elm.Line().length(0.5).up().color(jjr_color)
+            jjr_line += elm.Inductor().scale(0.75).length(1).right().color(jjr_color)
+            jjr_line += elm.Line().length(0.5).right()
+
+            jjr_line.push()
+            jjr_line += elm.Capacitor().down().length(2).dot().idot()
+            jjr_line += elm.Line().length(2).left()
+            jjr_line.pop()
+
+        # resistive junction transmission line    
+        with schemdraw.Drawing(show=False) as rj_line:
+            rj_color = 'slateblue'
+            rj_line.push()
+            rj_line += elm.Line().length(0.5)
+            rj_line += elm.Line().length(0.5).down().color(rj_color)
+            rj_line += elm.Capacitor().scale(0.75).right().length(1).color(rj_color)
+            rj_line += elm.Line().length(0.5).up().color(rj_color)
+            rj_line.pop()
+            rj_line += elm.Resistor().scale(0.5).length(2).color(rj_color)
+
+            rj_line.push()
+            rj_line += elm.Capacitor().down().length(2).dot().idot()
+            rj_line += elm.Line().length(2).left()
+            rj_line.pop()
 
         # ultrasmall junction, which actually is an RLC, but it's fun to cheat        
         with schemdraw.Drawing(show=False) as ujj:
@@ -442,8 +520,8 @@ class ABCDUtils():
 
 
         # it is important that there is a one-to-one correspondence between these two following lists
-        scheme_library = [ series_r,   ground_c, ground_r,   jj_line,    ujj,     ssh,    series_r2, series_c, ground_open, ground_short ]
-        elements_names = [ 'Rb',       'Cg',     'Rg',       'J',        'UJ',    'SSH',  'Rs',      'Cs'    , 'Og'       , 'Sg'         ]
+        scheme_library = [ series_r,   ground_c, ground_r,   jj_line,   jjr_line,  rj_line,    ujj,     ssh,    series_r2, series_c, ground_open, ground_short ]
+        elements_names = [ 'Rb',       'Cg',     'Rg',       'J',       'Jr',      'RJ',       'UJ',    'SSH',  'Rs',      'Cs'    , 'Og'       , 'Sg'         ]
         
 
         ## Draw the circuit components
